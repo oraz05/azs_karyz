@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>АЗС Қарыз жүйесі</title>
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Arial,sans-serif;
+  background-image: url('https://qazaqoil.kz/storage/1087/110121-1.jpeg');
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+.container{
+  width:100%;
+  max-width:520px;
+  background:#fff;
+  padding:16px;
+  border-radius:18px;
+  box-shadow:0 10px 25px rgba(0,0,0,.15);
+}
+header{
+  background:#00796b;
+  color:#fff;
+  padding:14px;
+  text-align:center;
+  font-size:22px;
+  border-radius:14px;
+  margin-bottom:14px;
+}
+input,textarea,button{
+  width:100%;
+  padding:12px;
+  margin:6px 0;
+  border-radius:12px;
+  border:1px solid #ccc;
+  font-size:15px;
+}
+button{
+  background:#2ecc71;
+  color:#fff;
+  font-weight:bold;
+  border:none;
+}
+button:active{transform:scale(.98)}
+.back{background:#e74c3c}
+.manager-btn{background:#3498db}
+.alert{
+  background:#ffeb3b;
+  padding:10px;
+  border-radius:10px;
+  text-align:center;
+  margin-bottom:10px;
+  display:none;
+  font-weight:bold;
+}
+.card{
+  background:#e0f2f1;
+  padding:12px;
+  border-radius:12px;
+  margin-bottom:8px;
+  font-size:14px;
+}
+.collapsible{
+  background:#00796b;
+  color:#fff;
+  padding:12px;
+  border:none;
+  border-radius:12px;
+  margin-top:10px;
+  text-align:left;
+}
+.content{display:none;padding-top:10px}
+.welcome{
+  text-align:center;
+  font-size:20px;
+  font-weight:bold;
+  margin:10px 0 14px;
+}
+.qty{
+  font-weight:bold;
+  color:#004d40;
+}
+.card{
+  background:#e0f2f1;
+  padding:12px;
+  border-radius:12px;
+  margin-bottom:8px;
+  font-size:14px;
+}
+
+
+.card-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.card-left{
+  flex:1;
+  min-width:0; /* МАҢЫЗДЫ */
+}
+
+.product-name{
+  white-space:normal;
+  word-break:break-word;
+}
+
+.product-img{
+  width:40px;
+  height:40px;
+  object-fit:cover;
+  border-radius:8px;
+  margin-left:10px;
+  flex-shrink:0;
+}
+
+</style>
+</head>
+<body>
+
+<div class="container">
+<header>АЗС Қарыз жүйесі</header>
+
+<div id="msg" class="alert"></div>
+
+<!-- LOGIN -->
+<div id="loginDiv">
+  <input id="username" placeholder="Аты (дәл жазыңыз)">
+  <input id="password" type="password" placeholder="Пароль">
+  <button onclick="login()">Кіру</button>
+</div>
+
+<!-- CASHIER -->
+<div id="cashierDiv" style="display:none">
+  <div id="cashierName" class="welcome"></div>
+  <textarea id="manualProduct" placeholder="Мысал: Кола 1л"></textarea>
+  <input id="qtyInput" type="number" min="1" placeholder="Саны (шт)">
+  <button onclick="addBorrow()">Қарызға қосу</button>
+  <div id="myBorrowList"></div>
+  <button class="back" onclick="logout()">Шығу</button>
+</div>
+
+<!-- MANAGER -->
+<div id="managerDiv" style="display:none">
+  <div class="welcome">Менеджер бөлімі</div>
+  <div id="borrowList"></div>
+  <button class="manager-btn" onclick="clearAll()">Барлық қарызды тазалау</button>
+  <button class="back" onclick="logout()">Шығу</button>
+</div>
+</div>
+
+<script>
+// ---- DATA ----
+// Товар суреттері (өзің толтырасың)
+// Мысал:
+// 'Кола 1л':'img/cola.png'
+// 'Фанта':'img/fanta.png'
+const productImages = {
+  'Кола 1л':'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS6ey0NL4gpwLYOC58ZygrkikR1tOe8eWZhT8mARbwKmyEt6PLVGmKA2WOrQoa8QD6Wvmuphqm0u413qPDJxyGTLsZU-N1emVmkdg3pqw&s=10',
+  'Кола 0.5':'https://cdn-kz3.foodpicasso.com/assets/2024/09/03/a175a78b81205d7ea6b74e8d90b26c2f---png_1000x_103c0_convert.png',
+  'Кола 1.5':'https://resources.cdn-kaspi.kz/img/m/p/p2e/pee/97763093.jpg?format=gallery-medium',
+  'Фанта 1л':'https://static.insales-cdn.com/images/products/1/2206/938207390/import_files_2c_2c09f323027f11eb80c4ac1f6bba4f3f_884e8aab009311efb89ff4034359f1ff.png',
+  'Горила':'https://img.fix-price.kz/insecure/rs:fit:800:800/plain/bit/_marketplace/images/origin/fa/fa65af8b863015450f0e767989c0f784.jpg',
+  'Фюсти чай манго ананас 1л':'https://gippo.kz/wp-content/uploads/2021/06/FuseNitro_MangoPineapple_kaz_gippo.jpg',
+  'Фюсти чай манго ромашка 1л':'https://api.im.kz/storage/U74YkW5xi4tZLsAI5ah3dGxQfQj6kH-metaOWQ2ZGEyOGE3ZTc5ZTMzYjBlNDk2ODAxMTFjMTM3NWVjMjQyNDM3Ni5wbmc=-.png',
+  'Макси чай лайм 1л':'https://minio.clevermart.kz/food/images/2022/6/10/d2e3e093-8a63-47bb-a185-5fb613833cfb/M_4870202522022_1.jpg',
+  'Макси чай лимон 1л':'https://produktoff.kz/pictures/product/big/27805_big.png',
+  'Макси чай Клубника 1л':'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRBrHfRmhyEErRTi-qJVO84b_1M0vHymn1vKw&s',
+  'Макси чай ягоды 1л':'https://shymkent.instashop.kz/upload/resize_cache/iblock/6a5/476_342_1/6a58a1b3628153ff19eb8b58c7f81982.jpg',
+  'Макси чай малина 1л':'https://semeiniy.kz/wa-data/public/shop/products/03/50/125003/images/39668/39668.970.jpg',
+  'Дизи':'https://vkusmart.vmv.kz/upload/iblock/345/3454babfd000032e9be0225822ad758b.jpg',
+  'Албени 40г':'https://minio.clevermart.kz/food/images/2023/2/7/a16c710d-4812-4326-a389-2acc3d7b0ed7/M_4870112003956_1.png',
+  'Албени 55г':'https://minio.clevermart.kz/food/images/2023/2/7/a16c710d-4812-4326-a389-2acc3d7b0ed7/M_4870112003956_1.png',
+  'Албени 95г':'https://minio.clevermart.kz/food/images/2023/2/7/a16c710d-4812-4326-a389-2acc3d7b0ed7/M_4870112003956_1.png',
+  'Сникерс 50г':'https://lasmarket.ru/wp-content/uploads/2023/06/shokoladnyj-batonchik-snickers-50gr-min.jpg',
+  'Сникерс 95г':'https://lasmarket.ru/wp-content/uploads/2023/06/shokoladnyj-batonchik-snickers-50gr-min.jpg',
+  'Тассай 1л':'https://img.oe.kz/bitrix-catalog/40522/1756983275-pythy412tvoa8uhsl02jeosruc5x4rlq.png',
+  'Бон аква 1л':'https://produktoff.kz/pictures/product/middle/7448_middle.png',
+  'Кастер банан':'https://bromart.kz/wp-content/uploads/2024/09/1000042985.jpg',
+  'Ред бул 0.355л':'https://simg.marwin.kz/media/catalog/product/cache/41deb699a7fea062a8915debbbb0442c/6/3/napitok_energeticheskiy_250ml_red_bull_6.jpg',
+  'Ред бул 0.255л':'https://simg.marwin.kz/media/catalog/product/cache/41deb699a7fea062a8915debbbb0442c/6/3/napitok_energeticheskiy_250ml_red_bull_6.jpg',
+  'Горила манго':'https://cdn-kz3.foodpicasso.com/assets/2024/12/03/a32fdf4d33614a6284be73755a034867---jpeg_1000x_103c0_convert.jpeg',
+  'Кола жб ':'https://static.insales-cdn.com/images/products/1/1774/938206958/import_files_4c_4c1e27051e6711eb80caac1f6bba4f3f_b2a70a9237eb11ed80ee0cc47a206601.png'
+};
+
+
+const employees=[
+ {name:'Жанболат',role:'Менеджер',pass:'1234'},
+ {name:'Оразби',role:'Кассир',pass:'111'},
+ {name:'Аида',role:'Кассир',pass:'222'},
+ {name:'Пернебай Акниет',role:'Кассир',pass:'333'},
+ {name:'Кабылбек Акниет',role:'Кассир',pass:'444'},
+ {name:'Арман',role:'Кассир',pass:'555'}
+];
+
+let borrowed = JSON.parse(localStorage.getItem('borrowed') || '{}');
+let current = null;
+
+// ---- HELPERS ----
+const el = id => document.getElementById(id);
+
+function showMsg(text){
+  const m = el('msg');
+  m.innerText = text;
+  m.style.display = 'block';
+  setTimeout(()=>m.style.display='none',2500);
+}
+
+// ---- LOGIN ----
+function login(){
+  const u = el('username').value.trim();
+  const p = el('password').value;
+
+  current = employees.find(e => e.name === u && e.pass === p);
+  if(!current){ showMsg('Логин немесе пароль қате'); return; }
+
+  el('loginDiv').style.display='none';
+
+  if(current.role === 'Менеджер'){
+    el('managerDiv').style.display='block';
+    renderManager();
+  } else {
+    el('cashierDiv').style.display='block';
+    el('cashierName').innerText = 'Қош келдіңіз, ' + current.name;
+    renderCashier();
+  }
+}
+
+// ---- CASHIER ----
+function addBorrow(){
+  const text = el('manualProduct').value.trim();
+  const qty = Number(el('qtyInput').value);
+  if(!text || !qty) return;
+
+  if(!borrowed[current.name]) borrowed[current.name] = {};
+
+  borrowed[current.name][text] = (borrowed[current.name][text] || 0) + qty;
+
+  localStorage.setItem('borrowed', JSON.stringify(borrowed));
+  el('manualProduct').value='';
+  el('qtyInput').value='';
+  renderCashier();
+}
+
+function renderCashier(){
+  const list = el('myBorrowList');
+  list.innerHTML='';
+
+  const data = borrowed[current.name] || {};
+  Object.keys(data).forEach(k=>{
+    const d=document.createElement('div');
+    d.className='card';
+
+    const img = productImages[k] 
+      ? `<img src="${productImages[k]}" class="product-img">` 
+      : '';
+
+    d.innerHTML = `
+      <div class="card-row">
+        <div class="card-left">
+          <div class="product-name">${k}</div>
+          <div class="qty">${data[k]} шт</div>
+        </div>
+        ${img}
+      </div>
+    `;
+
+    list.appendChild(d);
+  });
+}
+
+
+// ---- MANAGER ----
+function renderManager(){
+  const wrap = el('borrowList');
+  wrap.innerHTML='';
+
+  employees.filter(e=>e.role==='Кассир').forEach(c=>{
+    const btn=document.createElement('button');
+    btn.className='collapsible';
+    btn.innerText=c.name;
+
+    const cont=document.createElement('div');
+    cont.className='content';
+
+    const data = borrowed[c.name] || {};
+    Object.keys(data).forEach(k=>{
+      const d=document.createElement('div');
+      d.className='card';
+
+      const img = productImages[k] 
+        ? `<img src="${productImages[k]}" class="product-img">` 
+        : '';
+
+      d.innerHTML = `
+        <div class="card-row">
+          <div class="card-left">
+            <div class="product-name">${k}</div>
+            <div class="qty"><b>${data[k]} шт</b></div>
+          </div>
+          ${img}
+        </div>
+        <button class="back" onclick="removeItem('${c.name}','${k}')">Өшіру</button>
+      `;
+
+      cont.appendChild(d);
+    });
+
+    btn.onclick=()=>{
+      cont.style.display = cont.style.display==='block'?'none':'block';
+    };
+
+    wrap.appendChild(btn);
+    wrap.appendChild(cont);
+  });
+}
+
+
+function removeItem(user,item){
+  delete borrowed[user][item];
+  localStorage.setItem('borrowed', JSON.stringify(borrowed));
+  renderManager();
+}
+
+function clearAll(){
+  if(confirm('Барлық қарызды өшіреміз бе?')){
+    borrowed={};
+    localStorage.setItem('borrowed','{}');
+    renderManager();
+  }
+}
+
+// ---- LOGOUT ----
+function logout(){
+  current=null;
+  el('loginDiv').style.display='block';
+  el('cashierDiv').style.display='none';
+  el('managerDiv').style.display='none';
+}
+</script>
+</body>
+</html>
